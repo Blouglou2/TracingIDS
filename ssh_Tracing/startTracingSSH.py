@@ -10,6 +10,8 @@ from stat import ST_CTIME
 
 from handlerCreationTrace import *
 
+from datetime import datetime
+
 ipToTrace="132.207.72.35"
 login="pi"
 password="raspberry"
@@ -51,7 +53,7 @@ def intrusionMkdir(connection):
     print("Intrusion mkdir -> chmod -> rm")
     connection.sendCommand("mkdir test")
     connection.sendCommand("chmod u+x test/")
-    print(datetime.datetime.now())
+    print(datetime.now().time())
     connection.sendCommand("sleep(1)")
     connection.sendCommand("rm -r test/")
     print("Intrusion réussie")

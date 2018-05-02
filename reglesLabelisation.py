@@ -29,7 +29,7 @@ def reglesNomEvent(event):
 def reglesNetDevQueue(event):
     category = 0
     if re.search("net_dev_queue",event["a_nomEvent"]): 
-        
+
         infoIP = constructionBDD.infosIP()
         infoIP = constructionBDD.processIPnet_dev_queue_(event)
         # print(infoIP.ipDest)

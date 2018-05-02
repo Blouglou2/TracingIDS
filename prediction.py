@@ -5,6 +5,7 @@ from babeltraceReader import *
 from sklearn.externals import joblib
 
 import threading, queue
+from datetime import datetime
 
 
 
@@ -35,12 +36,13 @@ def DecisionTreePredict(trace_path):
             # print("Avant predict")
             if clf.predict(vec.transform(eventpreprocessed).toarray()) != [0]:
                 print("Alerte Intrusion sur le système :")
-                print( eventpreprocessed)
+                print(eventpreprocessed)
+                print(datetime.now().time())
                 print("----------------------------------")
             # print("Après predict")
         except TypeError:
             pass
-    print("Fin de traitement de la trace "+trace_path)
+    print("\n\nFin de traitement de la trace "+trace_path)
 
 
 
@@ -69,14 +71,16 @@ def OneClassSVMPredict(trace_path):
             # print("Après preprocessing")
             # print(eventpreprocessed)
             # print("Avant predict")
-            try:
-                if clf.predict(vec.transform(eventpreprocessed).toarray()) == [-1] and eventpreprocessed["a_nomEvent"]  != "net_dev_queue":
-                    print("Alerte Intrusion sur le système :")
-                    print( eventpreprocessed)
+            if eventpreprocessed != {}:
+                try:
+                    if clf.predict(vec.transform(eventpreprocessed).toarray()) == [-1] :    # and eventpreprocessed["a_nomEvent"]  != "net_dev_queue"
+                        print("Alerte Intrusion sur le système :")
+                    print(eventpreprocessed)
+                    print(datetime.now().time())
                     print("----------------------------------")
-                # print("Après predict")
-            except KeyError:
-                pass
+                    # print("Après predict")
+                except KeyError:
+                    pass
         except TypeError:
             pass
 

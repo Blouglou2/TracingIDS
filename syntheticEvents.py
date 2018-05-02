@@ -82,12 +82,14 @@ def synthetic_EntryExit(trace_path, listeMachines):
 
 
 def synthetic_EntryExitFromEvent(event,listeMachines):
-    if re.search("syscall_entry",event["a_nomEvent"]):
+    # if re.search("syscall_entry",event["a_nomEvent"]):
+    if "syscall_entry" in event["a_nomEvent"]:
             synteticSyscall = synthetic_entry_exit_syscall("syscall_"+event["a_nomEvent"].split("syscall_entry_")[1])
             synteticSyscall.addFieldsEntry(event)
             listeMachines.append(synteticSyscall)
             return
-    if re.search("syscall_exit",event["a_nomEvent"]):
+    # if re.search("syscall_exit",event["a_nomEvent"]):
+    if "syscall_exit" in event["a_nomEvent"]:
         for machine in listeMachines:
             # print("\n\n------------")
             # print(machine.fields)
@@ -105,7 +107,8 @@ def synthetic_EntryExitFromEvent(event,listeMachines):
                     pass
             except:
                 pass
-    # else:
+    else:
+        return event
     return event
 
 

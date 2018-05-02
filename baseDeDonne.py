@@ -18,21 +18,24 @@ def initialisationDB(nomBdd):
         IPdest TEXT,
         PortSource TEXT,
         PortDest TEXT,
-        UNIQUE(IPdevice,IPdest,PortSource,PortDest)
+        NomProcessus TEXT,
+        UNIQUE(IPdevice,IPdest,PortSource,PortDest,NomProcessus)
     )
     """)
     cursor.execute(""" 
     CREATE TABLE IF NOT EXISTS filename(
         evenement TEXT,
         filename TEXT,
-        UNIQUE(evenement,filename)
+        NomProcessus TEXT,
+        UNIQUE(evenement,filename,NomProcessus)
     )
     """)
     cursor.execute(""" 
     CREATE TABLE IF NOT EXISTS parentChild(
         parent TEXT,
         child TEXT,
-        UNIQUE(parent,child)
+        NomProcessus TEXT,
+        UNIQUE(parent,child,NomProcessus)
     )
     """)
     db.commit()
@@ -49,7 +52,7 @@ def afficherTables(nomBdd):
     print("IP :")
     for row in all_rows:
         # row[0] returns the index, row[1] returns the device IP,row[2] returns the source port and row[3] returns the dest port.
-        print("{0} | {1} | {2} | {3}".format(row[0], row[1], row[2], row[3]))
+        print("{0} | {1} | {2} | {3} | {4}".format(row[0], row[1], row[2], row[3], row[4]))
 
     cursor.execute("""
     SELECT * FROM filename
@@ -58,7 +61,7 @@ def afficherTables(nomBdd):
     print("Filename :")
     for row in all_rows:
         # row[0] returns the index, row[1] returns the device IP,row[2] returns the source port and row[3] returns the dest port.
-        print("{0} | {1} ".format(row[0], row[1]))
+        print("{0} | {1} | {2} ".format(row[0], row[1], row[2]))
 
     cursor.execute("""
     SELECT * FROM parentChild
@@ -67,7 +70,7 @@ def afficherTables(nomBdd):
     print("ParentChild :")
     for row in all_rows:
         # row[0] returns the index, row[1] returns the device IP,row[2] returns the source port and row[3] returns the dest port.
-        print("{0} | {1} ".format(row[0], row[1]))
+        print("{0} | {1} | {2} ".format(row[0], row[1], row[2]))
 
     closeDB(db)
 

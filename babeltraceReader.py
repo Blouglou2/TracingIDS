@@ -5,7 +5,8 @@ import babeltrace
 import re
 import sys
 import datetime
-from collections import defaultdict
+# from collections import defaultdict
+import collections
 
 import constructionBDD as regles
 
@@ -24,6 +25,21 @@ def itsADict(event,dictio):
         else:
             dictio[key]=event[key]
     return dictio
+
+def flattenDict(d):
+    def items():
+        for key, value in d.items():
+            if isinstance(value, dict):
+                for subkey, subvalue in flattenDict(value).items():
+                    yield subkey, subvalue
+                # yield flattenDict(value)
+            if isinstance(value, list):
+                yield key, int("".join(str(x) for x in value))
+            else:
+                yield key, value
+
+    return dict(items())
+
 
 
 def preprocessEventsklearn(event) :
@@ -49,7 +65,8 @@ def preprocessEventsklearn(event) :
             # TODO faire les dictionnaires imbriqués avec la fonction d'au-dessus
 
         elif isinstance(event[key],list):
-            dict2list = {key : int("".join(str(x) for x in event[key]))}
+            # dict2list = {key : int("".join(str(x) for x in event[key]))}
+            dict2list = {key : "".join(str(x) for x in event[key])}
             listeKeyDict.append(dict2list)
 
         else:   # Si liste ou autre
@@ -84,50 +101,99 @@ def preprocessMoreEventsklearn(event, listeMachines,dictTid,dictCPUid) :
         return {}
     
     
-    dictEvent = defaultdict(set)
-    dictEventtmp={"a_nomEvent" : event.name}
+    dictEvent = collections.defaultdict(set)
+    # dictEventtmp={"a_nomEvent" : event.name}
     listeKeyDict=[]
     newdict=0
     # category = 9
 
     try:
 
-        for key in event.keys():
-            if isinstance(event[key],int) or isinstance(event[key],str):
-                dictEventtmp[key] = event[key]
+        # dictEvent = flattenDict(event)
+        dictEvent = {k:v for k,v in flattenDict(event).items() if k  in ["timestamp_begin","timestamp_end","cpu_id","filename","skbaddr","protocol","stream_instance_id","count","buf","saddr","parent_comm",\
+        "daddr","tid","source_port","ret","dest_port","content_size","ack_seq","child_tid","child_pid","id","comm","pathname"]}
 
-            elif isinstance(event[key],dict):
-                newdict = 1
-                dictio={}
-                out = itsADict(event[key],dictio)
-                listeKeyDict.append(dictio)
-                # TODO faire les dictionnaires imbriqués avec la fonction d'au-dessus
+        # for key in event.keys():
+        #     if isinstance(event[key],int) or isinstance(event[key],str):
+        #         dictEventtmp[key] = event[key]
 
-            elif isinstance(event[key],list):
-                dict2list = {key : int("".join(str(x) for x in event[key]))}
-                listeKeyDict.append(dict2list)
+        #     elif isinstance(event[key],dict):
+        #         newdict = 1
+        #         dictio={}
+        #         out = itsADict(event[key],dictio)
+        #         listeKeyDict.append(dictio)
+        #         # TODO faire les dictionnaires imbriqués avec la fonction d'au-dessus
 
-            else:   # Si liste ou autre
-                pass
+        #     elif isinstance(event[key],list):
+        #         dict2list = {key : int("".join(str(x) for x in event[key]))}
+        #         listeKeyDict.append(dict2list)
+
+        #     else:   # Si liste ou autre
+        #         pass
     
     except UnicodeDecodeError as unicodeError:
         return {"a_nomEvent" : "erreur_lecture"}
 
-    dictEvent = dictEventtmp.copy()
+    dictEvent["a_nomEvent"] = event.name
+    dictEvent["p_name"] = "hass)0"
+    # dictEvent = dictEventtmp.copy()
 
-    if newdict == 1 :
-        for d in listeKeyDict:
-            for k,v in d.items():
-                dictEvent[k] = int(v)
+    # if newdict == 1 :
+    #     for d in listeKeyDict:
+    #         for k,v in d.items():
+    #             dictEvent[k] = int(v)
 
     
     # print(dictEvent)
 
     ##### On supprime les champs des events inutiles qui creeraient trop de features avec le one-hot encoder ######
     # TODO quelle est la façon optimale de supprimer des events?
-    dictEvent.pop("uuid",None)    # Valeur de l'uuid trop grandes pour être fit_transofrm?
-    dictEvent.pop("magic",None)
-    dictEvent.pop("packet_size",None)
+    # dictEvent.pop("uuid",None)    # Valeur de l'uuid trop grandes pour être fit_transofrm?
+    # dictEvent.pop("magic",None)
+    # dictEvent.pop("packet_size",None)
+    # dictEvent.pop("v",None)
+    # dictEvent.pop("network_header",None)
+    # dictEvent.pop("transport_header",None)
+
+
+    # dictEvent.pop("daddr_padding",None)
+    # dictEvent.pop("saddr_padding",None)
+    # dictEvent.pop("fd",None)
+    # dictEvent.pop("packet_seq_num",None)
+    # dictEvent.pop("uservaddr",None)
+    # dictEvent.pop("tos",None)
+    # dictEvent.pop("ihl",None)
+    # dictEvent.pop("stream_id",None)
+    # dictEvent.pop("clone_flags",None)
+    # dictEvent.pop("gid",None)
+    # dictEvent.pop("value",None)
+    # dictEvent.pop("uid",None)
+    # dictEvent.pop("addrlen",None)
+    # dictEvent.pop("grouplist",None)
+    # dictEvent.pop("frag_off",None)
+    # dictEvent.pop("bufsiz",None)
+    # dictEvent.pop("version",None)
+    # dictEvent.pop("euid",None)
+    # dictEvent.pop("transport_header_type",None)
+    # dictEvent.pop("head",None)
+    # dictEvent.pop("size",None)
+    # dictEvent.pop("tot_len",None)
+    # dictEvent.pop("envp",None)
+    # dictEvent.pop("checksum",None)
+    # dictEvent.pop("optlen",None)
+    # dictEvent.pop("sgid",None)
+    # dictEvent.pop("ruid",None)
+    # dictEvent.pop("newsp",None)
+    # dictEvent.pop("egid",None)
+    # dictEvent.pop("level",None)
+    # dictEvent.pop("network_header_type",None)
+    # dictEvent.pop("gidsetsize",None)
+    # dictEvent.pop("optval",None)
+    # dictEvent.pop("ovalue",None)
+    # dictEvent.pop("which",None)
+    # dictEvent.pop("optname",None)
+
+
     # dictEvent.pop("timestamp_begin",None)  
     # dictEvent.pop("timestamp_end",None)
     # dictEvent.pop("checksum",None)
@@ -147,6 +213,7 @@ def preprocessMoreEventsklearn(event, listeMachines,dictTid,dictCPUid) :
     try:
         tid = 0
         if re.search("/proc/[0-9]{1,}",dictEvent["filename"]):
+        # if "/proc/" in dictEvent["filename"]:
             tid = int(dictEvent["filename"].split("/")[2])
             dictEvent["filename"] = "/proc/"+dictTid[tid]+"/"+"".join(dictEvent["filename"].split("/")[3:])
     except KeyError:
@@ -155,6 +222,7 @@ def preprocessMoreEventsklearn(event, listeMachines,dictTid,dictCPUid) :
     try:
         tid = 0
         if re.search("/proc/[0-9]{1,}",dictEvent["pathname"]):
+        # if "/proc/" in dictEvent["pathname"]:
             tid = int(dictEvent["pathname"].split("/")[2])
             dictEvent["pathname"] = "/proc/"+dictTid[tid]+"/"+"".join(dictEvent["pathname"].split("/")[3:])
     except KeyError:
@@ -163,7 +231,9 @@ def preprocessMoreEventsklearn(event, listeMachines,dictTid,dictCPUid) :
     dictEvent.pop("timestamp_begin",None)  
     dictEvent.pop("timestamp_end",None)
 
-    dictEvent = syntheticEvents.synthetic_EntryExitFromEvent(dictEvent,listeMachines)
+    # if re.search("syscall",dictEvent["a_nomEvent"]):
+    if "syscall" in dictEvent["a_nomEvent"]:
+        dictEvent = syntheticEvents.synthetic_EntryExitFromEvent(dictEvent,listeMachines)
 
     
 
@@ -370,6 +440,7 @@ def getSomeEventsCSV(trace_path) :
     # print(listeEvents)
     # print(listeCategory)
 
+    # print([x for x in listeEvents if x is not None])
     return [x for x in listeEvents if x is not None]    # On supprime les évènements vides, qui correspondent à une erreur de lecture Unicode de la part de l'API babeltrace
 
 
@@ -485,14 +556,16 @@ def main():
 
     trace_handle = trace_collection.add_trace(trace_path, 'ctf')
 
-    for event in trace_collection.events:
-        # re.search("ioctl",event.name) or re.search("kmem",event.name) or re.search("irq",event.name)  or re.search("sched",event.name) or re.search("rcu_",event.name)
-        if (1 ) :
+    getSomeEventsCSV(trace_path)
+
+    # for event in trace_collection.events:
+    #     # re.search("ioctl",event.name) or re.search("kmem",event.name) or re.search("irq",event.name)  or re.search("sched",event.name) or re.search("rcu_",event.name)
+    #     if (1 ) :
             
             
-            print("\n", event.name, " : ")
-            for key in event.keys() :
-                    print("\t",key," : ",event[key])
+    #         print("\n", event.name, " : ")
+    #         for key in event.keys() :
+    #                 print("\t",key," : ",event[key])
         
             
 
@@ -504,5 +577,6 @@ if __name__ == '__main__':
 
 
     # getEventsRegleAbsolue(trace_path)
+    main()
 
-    readAllEvents(trace_path)
+    # readAllEvents(trace_path)

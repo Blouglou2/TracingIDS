@@ -26,7 +26,7 @@ def processIPnet_dev_queue_(event):
         if event["dest_port"] :
             portDest = event["dest_port"]
         if event["saddr"] :
-            ipSource = event["saddr"]
+            ipSource = int(event["saddr"])
         if event["daddr"] :
             ipDest = int(event["daddr"])
     except KeyError:
@@ -61,8 +61,8 @@ def addIPBDD(event):
     infoIP = processIPnet_dev_queue_(event)
     # print("PortSource : ",infoIP.portSource ," | ","PortDest : ",infoIP.portDest," | ","ipSource : ",infoIP.ipSource," | ","ipDest : ",infoIP.ipDest )
     cursor.execute(""" 
-    INSERT OR IGNORE INTO ip(IPdevice,IPdest,PortSource,PortDest)
-    VALUES(?,?,?,?)""",(infoIP.ipSource,infoIP.ipDest,infoIP.portSource,infoIP.portDest)
+    INSERT OR IGNORE INTO ip(IPdevice,IPdest,PortSource,PortDest,NomProcessus)
+    VALUES(?,?,?,?,?)""",(infoIP.ipSource,infoIP.ipDest,infoIP.portSource,infoIP.portDest,event["p_name"])
     )
 
     db.commit()
@@ -77,8 +77,8 @@ def addFilenameBDD(event):
 
     cursor = db.cursor()
     cursor.execute(""" 
-    INSERT OR IGNORE INTO filename(evenement,filename)
-    VALUES(?,?)""",(event["a_nomEvent"],event["filename"])
+    INSERT OR IGNORE INTO filename(evenement,filename,NomProcessus)
+    VALUES(?,?,?)""",(event["a_nomEvent"],event["filename"],event["p_name"])
     )
 
     db.commit()
@@ -92,8 +92,8 @@ def addParentChildBDD(event):
 
     cursor = db.cursor()
     cursor.execute(""" 
-    INSERT OR IGNORE INTO parentChild(parent,child)
-    VALUES(?,?)""",(event["parent_comm"],event["child_comm"])
+    INSERT OR IGNORE INTO parentChild(parent,child,NomProcessus)
+    VALUES(?,?,?)""",(event["parent_comm"],event["child_comm"],event["p_name"])
     )
 
     db.commit()
@@ -113,7 +113,7 @@ def checkIPBDD(event):
     infoIP = processIPnet_dev_queue_(event)
 
 
-    cursor.execute("SELECT rowid FROM ip WHERE (IPdest = ? AND PortSource = ? AND PortDest = ?)", (infoIP.ipDest,infoIP.portSource,infoIP.portDest))
+    cursor.execute("SELECT rowid FROM ip WHERE (IPdest = ? AND PortSource = ? AND PortDest = ? AND NomProcessus = ?)", (infoIP.ipDest,infoIP.portSource,infoIP.portDest,event["p_name"]))
     data=cursor.fetchall()
     if len(data)==0:
         # print("L'IP ", infoIP.ipDest, "n'est pas autorisée à communiquer avec l'appareil")
@@ -129,7 +129,7 @@ def checkfilenameBDD(event):
 
     cursor = db.cursor()
 
-    cursor.execute("SELECT rowid FROM filename WHERE (evenement = ? AND filename = ? )", (event["a_nomEvent"],event["filename"]))
+    cursor.execute("SELECT rowid FROM filename WHERE (evenement = ? AND filename = ? AND NomProcessus = ?)", (event["a_nomEvent"],event["filename"],event["p_name"]))
     data=cursor.fetchall()
     if len(data)==0:
         # print("Ce nom de fichier n'a aps le droit d'êter appelé par cet évènement")
@@ -146,10 +146,10 @@ def checkParentChildBDD(event):
 
     cursor = db.cursor()
 
-    cursor.execute("SELECT rowid FROM parentChild WHERE (parent = ? AND child = ? )", (event["parent_comm"],event["child_comm"]))
+    cursor.execute("SELECT rowid FROM parentChild WHERE (parent = ? AND child = ? AND NomProcessus = ?)", (event["parent_comm"],event["child_comm"],event["p_name"]))
     data=cursor.fetchall()
     if len(data)==0:
-        # print("Ce nom de fichier n'a aps le droit d'êter appelé par cet évènement")
+        # print("Ce nom de fichier n'a pas le droit d'êter appelé par cet évènement")
         return 1
     else:
         # print("Cet évènement peut appeler ce fichier")

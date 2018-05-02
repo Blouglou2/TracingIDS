@@ -32,7 +32,7 @@ class Handler(FileSystemEventHandler):
 
         self.coalesce = coalesce
         self.command = command
-        self.verbose = verbose
+        self.verbose = None
         self.notify = notify
         self.thread = None
         self.q = Queue()
@@ -50,6 +50,7 @@ class Handler(FileSystemEventHandler):
 
             # print(path)
             self.q.put(event)
+            # print(self.q.get())
 
     # def trigger(self, src_path):
 
@@ -79,27 +80,46 @@ class Handler(FileSystemEventHandler):
     #         ])
 
 
-    def trigger(self, event):
+    # def trigger(self, event):
+    #     num_worker_thread = 4
+    #     threads = []
+    #     for i in range(num_worker_thread):
+    #         t = threading.Thread(target=self.worker(event))
+    #         t.start()
+    #         threads.append(t)
+    #     self.q.join()
+    #     for t in threads:
+    #         t.join()
+
+    # def worker(self,event):
+    #     print(event)
+    #     DecisionTreePredict(event+"/kernel")
+    #     self.q.task_done()
+
+    # def _process_q(self):
+    #     while True:
+    #         event = self.q.get()
+    #         print("Event "+ str(event))
+    #         self.trigger(event.src_path)
+
+    def worker(self):
+        while True:
+            event = self.q.get()
+            print("Worker sur l'event :"+ str(event.src_path))
+            # DecisionTreePredict(event.src_path+"/kernel")
+            OneClassSVMPredict(event.src_path+"/kernel")
+            self.q.task_done()
+
+    def _process_q(self):
         num_worker_thread = 4
         threads = []
         for i in range(num_worker_thread):
-            t = threading.Thread(target=self.worker(event))
+            t = threading.Thread(target=self.worker)
             t.start()
             threads.append(t)
         self.q.join()
         for t in threads:
             t.join()
-
-    def worker(self,event):
-        print(event)
-        DecisionTreePredict(event+"/kernel")
-        self.q.task_done()
-
-    def _process_q(self):
-        while True:
-            event = self.q.get()
-
-            self.trigger(event.src_path)
 
 
 @click.command()
