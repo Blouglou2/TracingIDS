@@ -106,8 +106,10 @@ class Handler(FileSystemEventHandler):
         while True:
             event = self.q.get()
             print("Worker sur l'event :"+ str(event.src_path))
-            # DecisionTreePredict(event.src_path+"/kernel")
-            OneClassSVMPredict(event.src_path+"/kernel")
+            DecisionTreePredict(event.src_path+"/kernel")
+            # OneClassSVMPredict(event.src_path+"/kernel")
+            # MLPPredict(event.src_path+"/kernel")
+            # GBTPredict(event.src_path+"/kernel")
             self.q.task_done()
 
     def _process_q(self):
@@ -120,6 +122,7 @@ class Handler(FileSystemEventHandler):
         self.q.join()
         for t in threads:
             t.join()
+        print("Fin de l'analyse des traces")
 
 
 @click.command()

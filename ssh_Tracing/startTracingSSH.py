@@ -51,11 +51,17 @@ def lancerTracage(connection):
 
 def intrusionMkdir(connection):
     print("Intrusion mkdir -> chmod -> rm")
-    connection.sendCommand("mkdir test")
-    connection.sendCommand("chmod u+x test/")
+    connection.sendCommand("mkdir infected")
+    connection.sendCommand("chmod u+x infected/")
     print(datetime.now().time())
     connection.sendCommand("sleep(1)")
     connection.sendCommand("rm -r test/")
+    print("Intrusion réussie")
+
+def intrusionInfectedsh(connection):
+    print("Intrusion infected.sh")
+    connection.sendCommand("./infected.sh")
+    print(datetime.now().time())
     print("Intrusion réussie")
 
 def stopperTracage(connection):
@@ -89,7 +95,8 @@ def main():
         2. Intrusion mkdir (inclus le lancement et l'arrêt du traçage)
         3. Stopper tracage
         4. Supprimer traces  
-        5. Quit
+        5. Intrusion Infected
+        6. Quit
          """)
 
         ans = input()
@@ -106,6 +113,12 @@ def main():
         elif ans == "4":
             suppressionTraces()
         elif ans == "5":
+            lancerTracage(connection)
+            time.sleep(10)
+            intrusionInfectedsh(connection)
+            time.sleep(2)
+            stopperTracage(connection)
+        elif ans == "6":
             break
         elif ans !="" :
             print("Ce choix n'est pas correct")

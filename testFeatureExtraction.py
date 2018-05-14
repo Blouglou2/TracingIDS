@@ -152,6 +152,38 @@ def createCSVLabelisation(directory,outputDirectory):
     os.system("./removePrefixe.sh New")
     
 
+def createCSVLabelisationLSTM(directory,outputDirectory):
+
+    j=0
+ 
+    listeCategory = []
+    listeFichiers = [name for name in os.listdir(directory) if os.path.isfile(os.path.join(directory, name))]
+
+    compt = 0
+
+    label = 9
+
+    for fichier in listeFichiers:
+
+        print(fichier)
+
+        fichierDataset = directory+fichier
+        if os.stat(fichierDataset).st_size >= 100 :
+            dictEvent = fromCSVToDict(fichierDataset)
+            for event in dictEvent:
+                label = reglesLabelisation.reglesLabelisation(event)
+                listeCategory.append(reglesLabelisation.reglesLabelisation(event))
+            
+            with open(outputDirectory + fichier.split(".")[0]+"_out."+fichier.split(".")[1],'w') as fichier:   # Chaque dataset correspond à un dossier, c-a-d à un snapshot
+                w=csv.writer(fichier)
+                w.writerow("")
+                for output in listeCategory:
+                    w.writerow([output])
+            del listeCategory[:]    
+    j += 1
+
+
+
 
 def createBDD():
     dictDataset = itertools.chain.from_iterable(readCSV_data("./data/dataset/"))
@@ -645,53 +677,124 @@ def Benchmark():
     scoring = ["accuracy","f1","precision","recall"]
 
 
-    clf1 = tree.DecisionTreeClassifier()
-    clf2 = GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0)
+    clf1 = tree.DecisionTreeClassifier(class_weight ='balanced', criterion='gini', max_features='auto')
+    clf2 = GradientBoostingClassifier(n_estimators = 50000, learning_rate = 0.1)
     clf3 = svm.OneClassSVM(kernel="rbf")    # TODO On ne peut pas faire de cross val puisque ce n'est pas supervisé
-    clf4 = MLPClassifier()
+    clf4 = MLPClassifier(hidden_layer_sizes= (10, 2), solver = 'lbfgs', alpha= 0.0001)
     clf5 = svm.SVC(decision_function_shape="ovr")
+    clf6 = svm.SVC(decision_function_shape="ovo")
 
 
     scores1 = cross_validate(clf1, babelRead_vectorized, category, cv=5,scoring = scoring )
     print(scores1)
     print("----------------------------------")
-    scores2 = cross_validate(clf2, babelRead_vectorized, category, cv=5,scoring = scoring)
-    print(scores2)
-    print("----------------------------------")
-    # scores3 = cross_validate(clf3, babelRead_vectorized2, cv=5,scoring = scoring)
-    # print(scores3)
-    scores4 = cross_validate(clf4, babelRead_vectorized, category, cv=5,scoring = scoring )
-    print(scores4)
-    print("----------------------------------")
-    scores5 = cross_validate(clf5, babelRead_vectorized, category, cv=5,scoring = scoring )
-    print(scores5)
-    print("----------------------------------")
-
-    with open("benchmark.txt","w") as fichierBenchmark:
+    with open("benchmark.txt","a") as fichierBenchmark:
         fichierBenchmark.write("Arbre de décision:\n")
         fichierBenchmark.write("\t Accuracy {:5.4f} (+/- {:5.4f})\n".format(scores1["test_accuracy"].mean(), scores1["test_accuracy"].std()*2))
         fichierBenchmark.write("\t F1 {}\n".format(scores1["test_f1"].mean()))
         fichierBenchmark.write("\t Precision and recall :  {}, {}\n".format(scores1["test_precision"],scores1["test_recall"]))
 
+    scores2 = cross_validate(clf2, babelRead_vectorized, category, cv=5,scoring = scoring)
+    print(scores2)
+    print("----------------------------------")
+    with open("benchmark.txt","a") as fichierBenchmark:
         fichierBenchmark.write("GBT:\n")
         fichierBenchmark.write("\t Accuracy {:5.4f} (+/- {:5.4f})\n".format(scores2["test_accuracy"].mean(), scores2["test_accuracy"].std()*2))
         fichierBenchmark.write("\t F1 {}\n".format(scores2["test_f1"].mean()))
         fichierBenchmark.write("\t Precision and recall :  {}, {}\n".format(scores2["test_precision"].mean(),scores2["test_recall"].mean()))
 
-        # fichierBenchmark.write("OneClassSVM:")
-        # fichierBenchmark.write("\t Précision {}".format(scores3["test_accuracy"]))
-        # fichierBenchmark.write("\t F1 {}".format(scores3["test_f1"]))
-        # fichierBenchmark.write("\t Precision and recall :  {}, {}".format(scores3["test_precision"],scores3["recall"]))
-
+    # scores3 = cross_validate(clf3, babelRead_vectorized2, cv=5,scoring = scoring)
+    # print(scores3)
+    scores4 = cross_validate(clf4, babelRead_vectorized, category, cv=5,scoring = scoring )
+    print(scores4)
+    print("----------------------------------")
+    with open("benchmark.txt","a") as fichierBenchmark:
         fichierBenchmark.write("MLP:\n")
         fichierBenchmark.write("\t Accuracy {:5.4f} (+/- {:5.4f})\n".format(scores4["test_accuracy"].mean(), scores4["test_accuracy"].std()*2))
         fichierBenchmark.write("\t F1 {}\n".format(scores4["test_f1"].mean()))
         fichierBenchmark.write("\t Precision and recall :  {}, {}\n".format(scores4["test_precision"].mean(),scores4["test_recall"].mean()))
 
+    scores5 = cross_validate(clf5, babelRead_vectorized, category, cv=5,scoring = scoring )
+    print(scores5)
+    print("----------------------------------")
+
+
+    with open("benchmark.txt","a") as fichierBenchmark:
+
+
         fichierBenchmark.write("SVM SVC:\n")
         fichierBenchmark.write("\t Accuracy {:5.4f} (+/- {:5.4f})\n".format(scores5["test_accuracy"].mean(), scores5["test_accuracy"].std()*2))
         fichierBenchmark.write("\t F1 {}\n".format(scores2["test_f1"].mean()))
         fichierBenchmark.write("\t Precision and recall :  {}, {}\n".format(scores5["test_precision"].mean(),scores5["test_recall"].mean()))
+
+    scores6 = cross_validate(clf6, babelRead_vectorized, category, cv=5,scoring = scoring )
+    print(scores6)
+    print("----------------------------------")
+
+
+    with open("benchmark.txt","a") as fichierBenchmark:
+
+
+        fichierBenchmark.write("SVM SVC2:\n")
+        fichierBenchmark.write("\t Accuracy {:5.4f} (+/- {:5.4f})\n".format(scores6["test_accuracy"].mean(), scores6["test_accuracy"].std()*2))
+        fichierBenchmark.write("\t F1 {}\n".format(scores6["test_f1"].mean()))
+        fichierBenchmark.write("\t Precision and recall :  {}, {}\n".format(scores6["test_precision"].mean(),scores6["test_recall"].mean()))
+
+
+
+def trainFromCSV():
+
+    vec = DictVectorizer(separator=':')
+    nb_listes = sum(1 for i in readCSV_data("./data/dataset/"))
+    listeOutput = []
+
+    dictDataset = itertools.chain.from_iterable(readCSV_data("./data/dataset/"))
+
+    for item in readCSV_output("./data/datasetOutput/"):
+        listeOutput = listeOutput  + item 
+
+
+    # TODO Utiliser feature union pour les différents dicvctorizer correspondant à chaque fichier?
+
+
+    babelRead_vectorized = vec.fit_transform(dictDataset).toarray()
+    print(vec.feature_names_)
+
+    category = listeOutput
+
+    babelRead_vectorized_train,babelRead_vectorized_test, category_train, category_test = train_test_split(babelRead_vectorized,category, test_size=0.33, random_state = 42)
+
+    clf1 = tree.DecisionTreeClassifier(class_weight ='balanced', criterion='gini', max_features='auto')
+    clf2 = GradientBoostingClassifier(n_estimators = 50000, learning_rate = 0.1)
+    clf4 = MLPClassifier(hidden_layer_sizes= (10, 2), solver = 'lbfgs', alpha= 0.0001)
+
+
+    # clf.fit(babelRead_vectorized,category)
+    clf1.fit(babelRead_vectorized_train,category_train)
+
+    save = None
+    save = joblib.dump(vec,"./modeles/dictVec.p")
+
+    save = joblib.dump(clf1,"./modeles/decisionTree.p")
+    if save != None :
+        print("Enregistrement du modèle achevé!")
+    else:
+        print("Erreur lors de l'enregistrement")
+
+    clf2.fit(babelRead_vectorized_train,category_train)
+    save = joblib.dump(clf2,"./modeles/GBT.p")
+    if save != None :
+        print("Enregistrement du modèle 2 achevé!")
+    else:
+        print("Erreur lors de l'enregistrement 2")
+
+
+    clf4.fit(babelRead_vectorized_train,category_train)
+    save = joblib.dump(clf4,"./modeles/MLP.p")
+    if save != None :
+        print("Enregistrement du modèle 3 achevé!")
+    else:
+        print("Erreur lors de l'enregistrement 3")
 
 
 def OptimisationHyperparametres():
@@ -723,7 +826,7 @@ def OptimisationHyperparametres():
     #     fichierBenchmark.write("\t Meilleur hyperparamètre : {} \n".format(clf1.best_params_))
 
 
-    clf2 = GridSearchCV(GradientBoostingClassifier(),{"n_estimators" : [50000,70000], "learning_rate" : [0.1,0.01]},scoring = scoring)
+    clf2 = GridSearchCV(GradientBoostingClassifier(),{"n_estimators" : [50000,60000], "learning_rate" : [0.1,0.01]},scoring = scoring)
     clf2.fit(babelRead_vectorized_train,category_train)
     print(clf2.best_params_)
     with open("optimisation.txt","a") as fichierBenchmark:
@@ -731,7 +834,7 @@ def OptimisationHyperparametres():
         fichierBenchmark.write("\t Meilleur hyperparamètres : {} \n".format(clf2.best_params_))
 
 
-    clf4 = GridSearchCV(MLPClassifier(),{"solver" : ["lbfgs","sgd","adam"], "alpha": [1e-3, 1e-4], "hidden_layer_sizes" : [(12,2),(12,4,2),(10,2)]},scoring=scoring)
+    clf4 = GridSearchCV(MLPClassifier(),{"solver" : ["lbfgs"], "alpha": [1e-3, 1e-4,1e-5], "hidden_layer_sizes" : [(10,2),(11,2),(9,2)]},scoring=scoring)
     clf4.fit(babelRead_vectorized_train,category_train)
     print(clf4.best_params_)
     with open("optimisation.txt","a") as fichierBenchmark:
@@ -789,7 +892,9 @@ def main():
         9. Prediction GBT
         10. Compter dataset
         11. Benchmark
-        12. Quit  
+        12. Générer Labels LSTM  
+        13. Train modèles
+        14. Quit 
          """)
 
         ans = input()
@@ -829,6 +934,15 @@ def main():
         elif ans == "11":
             Benchmark()
         elif ans == "12":
+            input("Le dataset a-t-il bien été généré?")
+            directory = "/home/robin/Bureau/TestMachineLearning/HomeAssistant/data/dataset/"
+            createCSVLabelisationLSTM(directory,"./data/datasetOutput/")
+            print("Génération des fichiers dataset effectuée")
+            os.system("mv ./data/datasetOutput/* ./data/LSTM/datasetOutput")
+        elif ans == "13":
+            input("Le dataset ET les labels ont-ils bien été générés?")
+            trainFromCSV()
+        elif ans == "14":
             break
         elif ans !="" :
             print("Ce choix n'est pas correct")

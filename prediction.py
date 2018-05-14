@@ -12,7 +12,7 @@ from datetime import datetime
 def DecisionTreePredict(trace_path):
     
     modele = "./modeles/decisionTree.p"
-    dictVec = "./modeles/decisionTreeVec.p"
+    dictVec = "./modeles/dictVec.p"
     
     clf = joblib.load(modele)
     vec = joblib.load(dictVec)
@@ -49,7 +49,7 @@ def DecisionTreePredict(trace_path):
 def OneClassSVMPredict(trace_path):
     
     modele = "./modeles/oneClassSVM.p"
-    dictVec = "./modeles/oneClassSVMVec.p"
+    dictVec = "./modeles/dictOneClassVec.p"
     
     clf = joblib.load(modele)
     vec = joblib.load(dictVec)
@@ -84,6 +84,83 @@ def OneClassSVMPredict(trace_path):
         except TypeError:
             pass
 
+def MLPPredict(trace_path):
+    
+    modele = "./modeles/MLP.p"
+    dictVec = "./modeles/dictVec.p"
+    
+    clf = joblib.load(modele)
+    vec = joblib.load(dictVec)
+
+    trace_collection = babeltrace.TraceCollection()
+
+    trace_handle = trace_collection.add_trace(trace_path, 'ctf')
+
+    listeMachines = []
+    dicTid = {}
+    dictCPUid = {}
+
+    print(trace_path)
+
+    for event in trace_collection.events:
+        try :
+            # print("Avant preprocessing")
+            eventpreprocessed = preprocessMoreEventsklearn(event, listeMachines,dicTid,dictCPUid)
+            # print("Après preprocessing")
+            # print(eventpreprocessed)
+            # print("Avant predict")
+            if eventpreprocessed != {}:
+                try:
+                    if clf.predict(vec.transform(eventpreprocessed).toarray()) != [0]:     # and eventpreprocessed["a_nomEvent"]  != "net_dev_queue"
+                        print("Alerte Intrusion sur le système :")
+                    print(eventpreprocessed)
+                    print(datetime.now().time())
+                    print("----------------------------------")
+                    # print("Après predict")
+                except KeyError:
+                    pass
+        except TypeError:
+            pass
+
+
+
+def GBTPredict(trace_path):
+    
+    modele = "./modeles/GBT.p"
+    dictVec = "./modeles/dictVec.p"
+    
+    clf = joblib.load(modele)
+    vec = joblib.load(dictVec)
+
+    trace_collection = babeltrace.TraceCollection()
+
+    trace_handle = trace_collection.add_trace(trace_path, 'ctf')
+
+    listeMachines = []
+    dicTid = {}
+    dictCPUid = {}
+
+    print(trace_path)
+
+    for event in trace_collection.events:
+        try :
+            # print("Avant preprocessing")
+            eventpreprocessed = preprocessMoreEventsklearn(event, listeMachines,dicTid,dictCPUid)
+            # print("Après preprocessing")
+            # print(eventpreprocessed)
+            # print("Avant predict")
+            if eventpreprocessed != {}:
+                try:
+                    if clf.predict(vec.transform(eventpreprocessed).toarray()) != [0]:   # and eventpreprocessed["a_nomEvent"]  != "net_dev_queue"
+                        print("Alerte Intrusion sur le système :")
+                    print(eventpreprocessed)
+                    print(datetime.now().time())
+                    print("----------------------------------")
+                    # print("Après predict")
+                except KeyError:
+                    pass
+        except TypeError:
+            pass
 
 
 # def enqueue(path):
