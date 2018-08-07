@@ -15,6 +15,14 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import GridSearchCV
 import numpy
 
+from babeltraceReader import *
+from sklearn.externals import joblib
+
+import babeltrace
+
+import threading, queue
+from datetime import datetime
+import os
 
 from keras.models import Sequential
 from keras.layers import Dense
@@ -62,7 +70,7 @@ def create_model1():
 def create_model2():
 	# create model
 	model = Sequential()
-	model.add(Dense(8, input_dim=1611, activation='sigmoid'))
+	model.add(Dense(8, input_dim=1655, activation='sigmoid'))
 	model.add(Dense(4, activation='sigmoid'))
 	model.add(Dense(1, activation='sigmoid'))
 	# Compile model
@@ -104,17 +112,30 @@ def benchmarkLSTM():
     kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
 
     # create model
-    print("Modèle 1 processing...")
+    print("Modèle 2 processing...")
     model2 = KerasClassifier(build_fn=create_model2, epochs=5, batch_size=5, verbose=1)
+
+    
 
     scores2 = cross_validate(model2, X, Y, cv=5,scoring = scoring )
     print(scores2)
-    print("----------------------------------")
-    with open("benchmark.txt","a") as fichierBenchmark:
-        fichierBenchmark.write("-------------------------------\n")
-        fichierBenchmark.write("LSTM:\n")
-        fichierBenchmark.write("\t Accuracy {:5.4f} (+/- {:5.4f})\n".format(scores2["test_accuracy"].mean(), scores2["test_accuracy"].std()*2))
-        fichierBenchmark.write("\t F1 {}\n".format(scores2["test_f1"].mean()))
+
+    save = joblib.dump(vec,"./modeles/dictVecLSTM.p")
+
+    print("-----------------------------------")
+    
+    save = None
+    save = joblib.dump(model2,"./modeles/LSTM.p")
+    if save != None :
+        print("Enregistrement du modèle achevé!")
+    else:
+        print("Erreur lors de l'enregistrement")
+    # print("----------------------------------")
+    # with open("benchmark.txt","a") as fichierBenchmark:
+    #     fichierBenchmark.write("-------------------------------\n")
+    #     fichierBenchmark.write("LSTM:\n")
+    #     fichierBenchmark.write("\t Accuracy {:5.4f} (+/- {:5.4f})\n".format(scores2["test_accuracy"].mean(), scores2["test_accuracy"].std()*2))
+    #     fichierBenchmark.write("\t F1 {}\n".format(scores2["test_f1"].mean()))
 
 def LSTMFromCSV():
 
@@ -135,26 +156,38 @@ def LSTMFromCSV():
     Y = listeOutput
 
     # evaluate using 10-fold cross validation
-    kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=seed)
+    kfold = StratifiedKFold(n_splits=5, shuffle=False, random_state=seed)
 
     # create model
     print("Modèle 1 processing...")
-    model1 = KerasClassifier(build_fn=create_model1, epochs=5, batch_size=5, verbose=0)
-    results1 = cross_val_score(model1, X, Y, cv=kfold)
+    model1 = KerasClassifier(build_fn=create_model1, epochs=5, batch_size=5, verbose=1)
+    # results1 = cross_val_score(model1, X, Y, cv=kfold)
     print("-----------------------------------")
-    print(results1.mean())
+    # print(results1)
+    # print(results1.mean())
 
-    print("Modèle 1 processing...")
-    model2 = KerasClassifier(build_fn=create_model2, epochs=5, batch_size=5, verbose=0)
-    results2 = cross_val_score(model2, X, Y, cv=kfold)
-    print("-----------------------------------")
-    print(results2.mean())
+    save = joblib.dump(vec,"./modeles/dictVecLSTM.p")
 
-    print("Modèle 1 processing...")
-    model3 = KerasClassifier(build_fn=create_model3, epochs=5, batch_size=5, verbose=0)
-    results3 = cross_val_score(model3, X, Y, cv=kfold)
     print("-----------------------------------")
-    print(results3.mean())
+
+    save = None
+    save = joblib.dump(model1,"./modeles/LSTM.p")
+    if save != None :
+        print("Enregistrement du modèle achevé!")
+    else:
+        print("Erreur lors de l'enregistrement")
+
+    # print("Modèle 1 processing...")
+    # model2 = KerasClassifier(build_fn=create_model2, epochs=5, batch_size=5, verbose=0)
+    # results2 = cross_val_score(model2, X, Y, cv=kfold)
+    # print("-----------------------------------")
+    # print(results2.mean())
+
+    # print("Modèle 1 processing...")
+    # model3 = KerasClassifier(build_fn=create_model3, epochs=5, batch_size=5, verbose=0)
+    # results3 = cross_val_score(model3, X, Y, cv=kfold)
+    # print("-----------------------------------")
+    # print(results3.mean())
 
 
 
@@ -207,11 +240,68 @@ def LSTMFromCSV():
 
 
 
+def LSTMPredict(trace_path):
+    
+    modele = "./modeles/LSTM.p"
+    dictVec = "./modeles/dictVecLSTM.p"
+    
+    clf = joblib.load(modele)
+    vec = joblib.load(dictVec)
+
+    trace_collection = babeltrace.TraceCollection()
+
+    trace_handle = trace_collection.add_trace(trace_path, 'ctf')
+
+    listeMachines = []
+    dicTid = {}
+    dictCPUid = {}
+
+    # print(trace_path)
+
+    tempsDebut = datetime.now().time()
+    print("\tTemps debut : "+ str(tempsDebut))
+
+
+    for event in trace_collection.events:
+        try :
+            # print("Avant preprocessing")
+            eventpreprocessed = preprocessMoreEventsklearn(event,listeMachines,dicTid,dictCPUid)
+            # print("Après preprocessing")
+            # print(eventpreprocessed)
+            # print("Avant predict")
+            if clf.predict(vec.transform(eventpreprocessed).toarray()) != [0]:
+                # print("Alerte Intrusion sur le système :")
+                # print(eventpreprocessed)
+                # print(datetime.now().time())
+                # print("----------------------------------")
+                pass
+            # print("Après predict")
+        except TypeError:
+            pass
+    # print("\n\nFin de traitement de la trace "+trace_path)
+
+
+def benchmarkPredictLSTM():
+    path = "./infectedTimeBenchmark/hassbian/"
+
+    listeDirectory = [name for name in os.listdir(path)]
+    listeDirectory = [path+x+"/kernel" for x in listeDirectory]
+    
+    tempsDebut = ""
+    tempsFin = ""
+
+    print("LSTM :")
+    for directory in listeDirectory:
+        LSTMPredict(directory)
+        tempsFin = datetime.now().time()
+        print("\tTemps fin : " + str(tempsFin) )
 
 def main():
-    os.system("source ~/Software/tensorflow/bin/activate")
-    # LSTMFromCSV()
-    benchmarkLSTM()
+    # os.system("source ~/Software/tensorflow/bin/activate")
+    # # LSTMFromCSV()
+    # benchmarkLSTM()
+
+    benchmarkPredictLSTM()
 
 if __name__ == '__main__':
     main()

@@ -99,7 +99,13 @@ def preprocessMoreEventsklearn(event, listeMachines,dictTid,dictCPUid) :
         except KeyError:
             pass
         return {}
-    
+    if event.name == "sched_process_fork":
+        # TODO COMPLETER
+        try:
+            dictTid[event["child_tid"]]= event["child_comm"]
+            dictTid[event["parent_tid"]]= event["parent_comm"]
+        except KeyError:
+            pass
     
     dictEvent = collections.defaultdict(set)
     # dictEventtmp={"a_nomEvent" : event.name}
@@ -110,8 +116,8 @@ def preprocessMoreEventsklearn(event, listeMachines,dictTid,dictCPUid) :
     try:
 
         # dictEvent = flattenDict(event)
-        dictEvent = {k:v for k,v in flattenDict(event).items() if k  in ["timestamp_begin","timestamp_end","cpu_id","filename","skbaddr","protocol","stream_instance_id","count","buf","saddr","parent_comm",\
-        "daddr","tid","source_port","ret","dest_port","content_size","ack_seq","child_tid","child_pid","id","comm","pathname"]}
+        dictEvent = {k:v for k,v in flattenDict(event).items() if k  in ["timestamp_begin","timestamp_end","cpu_id","filename","skbaddr","protocol","saddr","parent_comm",\
+        "daddr","tid","source_port","ret","dest_port","child_comm","comm","pathname"]}
 
         # for key in event.keys():
         #     if isinstance(event[key],int) or isinstance(event[key],str):
@@ -147,67 +153,14 @@ def preprocessMoreEventsklearn(event, listeMachines,dictTid,dictCPUid) :
     # print(dictEvent)
 
     ##### On supprime les champs des events inutiles qui creeraient trop de features avec le one-hot encoder ######
-    # TODO quelle est la façon optimale de supprimer des events?
-    # dictEvent.pop("uuid",None)    # Valeur de l'uuid trop grandes pour être fit_transofrm?
-    # dictEvent.pop("magic",None)
-    # dictEvent.pop("packet_size",None)
-    # dictEvent.pop("v",None)
-    # dictEvent.pop("network_header",None)
-    # dictEvent.pop("transport_header",None)
 
-
-    # dictEvent.pop("daddr_padding",None)
-    # dictEvent.pop("saddr_padding",None)
-    # dictEvent.pop("fd",None)
-    # dictEvent.pop("packet_seq_num",None)
-    # dictEvent.pop("uservaddr",None)
-    # dictEvent.pop("tos",None)
-    # dictEvent.pop("ihl",None)
-    # dictEvent.pop("stream_id",None)
-    # dictEvent.pop("clone_flags",None)
-    # dictEvent.pop("gid",None)
-    # dictEvent.pop("value",None)
-    # dictEvent.pop("uid",None)
-    # dictEvent.pop("addrlen",None)
-    # dictEvent.pop("grouplist",None)
-    # dictEvent.pop("frag_off",None)
-    # dictEvent.pop("bufsiz",None)
-    # dictEvent.pop("version",None)
-    # dictEvent.pop("euid",None)
-    # dictEvent.pop("transport_header_type",None)
-    # dictEvent.pop("head",None)
-    # dictEvent.pop("size",None)
-    # dictEvent.pop("tot_len",None)
-    # dictEvent.pop("envp",None)
-    # dictEvent.pop("checksum",None)
-    # dictEvent.pop("optlen",None)
-    # dictEvent.pop("sgid",None)
-    # dictEvent.pop("ruid",None)
-    # dictEvent.pop("newsp",None)
-    # dictEvent.pop("egid",None)
-    # dictEvent.pop("level",None)
-    # dictEvent.pop("network_header_type",None)
-    # dictEvent.pop("gidsetsize",None)
-    # dictEvent.pop("optval",None)
-    # dictEvent.pop("ovalue",None)
-    # dictEvent.pop("which",None)
-    # dictEvent.pop("optname",None)
-
-
-    # dictEvent.pop("timestamp_begin",None)  
-    # dictEvent.pop("timestamp_end",None)
-    # dictEvent.pop("checksum",None)
-    # dictEvent.pop("seq",None)
-    # dictEvent.pop("skbaddr",None)
-    # dictEvent.pop("id",None)
-    # dictEvent.pop("ack_seq",None)
-    # try:
-    #     del dictEvent["timestamp"]
-    # except KeyError:
-    #     pass
     dictEvent["d_timestamp"] = dictEvent["timestamp_end"] - dictEvent["timestamp_begin"]
     try:
         dictEvent["p_name"] = dictCPUid[event["cpu_id"]]
+    except KeyError:
+        pass
+    try:
+        dictEvent["tid"] = dictTid[event["tid"]]
     except KeyError:
         pass
     try:
@@ -230,11 +183,14 @@ def preprocessMoreEventsklearn(event, listeMachines,dictTid,dictCPUid) :
 
     dictEvent.pop("timestamp_begin",None)  
     dictEvent.pop("timestamp_end",None)
+    
 
     # if re.search("syscall",dictEvent["a_nomEvent"]):
     if "syscall" in dictEvent["a_nomEvent"]:
         dictEvent = syntheticEvents.synthetic_EntryExitFromEvent(dictEvent,listeMachines)
 
+    if dictEvent is not None:
+        dictEvent.pop("cpu_id",None)
     
 
 
@@ -294,14 +250,16 @@ def readAllEvents(trace_path) :
 
     trace_handle = trace_collection.add_trace(trace_path, 'ctf')
 
-    for event in trace_collection.events:
+    return trace_collection
 
-        if re.search("writeback",event.name) :
-                print("--")
-        else:
-            print(event.name)
-            for key in event.keys() :
-                print("\t",key," : ",event[key])
+    # for event in trace_collection.events:
+
+    #     if re.search("writeback",event.name) :
+    #             print("--")
+    #     else:
+    #         print(event.name)
+    #         for key in event.keys() :
+    #             print("\t",key," : ",event[key])
            
 
     print("Fin de l'analyse")

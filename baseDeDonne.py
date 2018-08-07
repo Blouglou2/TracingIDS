@@ -19,7 +19,8 @@ def initialisationDB(nomBdd):
         PortSource TEXT,
         PortDest TEXT,
         NomProcessus TEXT,
-        UNIQUE(IPdevice,IPdest,PortSource,PortDest,NomProcessus)
+        Protocole TEXT,
+        UNIQUE(IPdevice,IPdest,PortSource,PortDest,NomProcessus, Protocole)
     )
     """)
     cursor.execute(""" 
@@ -27,7 +28,8 @@ def initialisationDB(nomBdd):
         evenement TEXT,
         filename TEXT,
         NomProcessus TEXT,
-        UNIQUE(evenement,filename,NomProcessus)
+        ret TEXT,
+        UNIQUE(evenement,filename,NomProcessus,ret)
     )
     """)
     cursor.execute(""" 
@@ -36,6 +38,23 @@ def initialisationDB(nomBdd):
         child TEXT,
         NomProcessus TEXT,
         UNIQUE(parent,child,NomProcessus)
+    )
+    """)
+    cursor.execute(""" 
+    CREATE TABLE IF NOT EXISTS syscall(
+        evenement TEXT,
+        NomProcessus TEXT,
+        ret TEXT,
+        UNIQUE(evenement,NomProcessus,ret)
+    )
+    """)
+    cursor.execute(""" 
+    CREATE TABLE IF NOT EXISTS pathname(
+        evenement TEXT,
+        pathname TEXT,
+        NomProcessus TEXT,
+        ret TEXT,
+        UNIQUE(evenement,pathname,NomProcessus,ret)
     )
     """)
     db.commit()

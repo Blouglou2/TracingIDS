@@ -11,6 +11,7 @@ class infosIP(object):
         self.portDest=0
         self.ipSource=0
         self.ipDest=0
+        self.proto=0
 
 
 def processIPnet_dev_queue_(event):
@@ -20,6 +21,7 @@ def processIPnet_dev_queue_(event):
     portDest=0
     ipSource=0
     ipDest=0
+    proto = 0
     try:
         if event["source_port"] :
             portSource = event["source_port"]
@@ -29,6 +31,8 @@ def processIPnet_dev_queue_(event):
             ipSource = int(event["saddr"])
         if event["daddr"] :
             ipDest = int(event["daddr"])
+        if event["protocol"] :
+            proto = int(event["protocol"])
     except KeyError:
         pass
     
@@ -42,6 +46,7 @@ def processIPnet_dev_queue_(event):
     infosIP.portDest=portDest
     infosIP.ipSource=ipSource
     infosIP.ipDest=ipDest
+    infosIP.proto=proto
     
     return infosIP
     # if (portSource and portDest and ipSource and ipDest):
@@ -61,8 +66,8 @@ def addIPBDD(event):
     infoIP = processIPnet_dev_queue_(event)
     # print("PortSource : ",infoIP.portSource ," | ","PortDest : ",infoIP.portDest," | ","ipSource : ",infoIP.ipSource," | ","ipDest : ",infoIP.ipDest )
     cursor.execute(""" 
-    INSERT OR IGNORE INTO ip(IPdevice,IPdest,PortSource,PortDest,NomProcessus)
-    VALUES(?,?,?,?,?)""",(infoIP.ipSource,infoIP.ipDest,infoIP.portSource,infoIP.portDest,event["p_name"])
+    INSERT OR IGNORE INTO ip(IPdevice,IPdest,PortSource,PortDest,NomProcessus,Protocole)
+    VALUES(?,?,?,?,?,?)""",(infoIP.ipSource,infoIP.ipDest,infoIP.portSource,infoIP.portDest,event["p_name"],infoIP.proto)
     )
 
     db.commit()
@@ -77,8 +82,23 @@ def addFilenameBDD(event):
 
     cursor = db.cursor()
     cursor.execute(""" 
-    INSERT OR IGNORE INTO filename(evenement,filename,NomProcessus)
-    VALUES(?,?,?)""",(event["a_nomEvent"],event["filename"],event["p_name"])
+    INSERT OR IGNORE INTO filename(evenement,filename,NomProcessus,ret)
+    VALUES(?,?,?,?)""",(event["a_nomEvent"],event["filename"],event["p_name"],event["ret"])
+    )
+
+    db.commit()
+
+    baseDeDonne.closeDB(db)
+
+def addPathnameBDD(event):
+    
+    baseDeDonne.initialisationDB("./data/database.db")
+    db = sqlite3.connect("./data/database.db")
+
+    cursor = db.cursor()
+    cursor.execute(""" 
+    INSERT OR IGNORE INTO pathname(evenement,pathname,NomProcessus,ret)
+    VALUES(?,?,?,?)""",(event["a_nomEvent"],event["pathname"],event["p_name"],event["ret"])
     )
 
     db.commit()
@@ -94,6 +114,21 @@ def addParentChildBDD(event):
     cursor.execute(""" 
     INSERT OR IGNORE INTO parentChild(parent,child,NomProcessus)
     VALUES(?,?,?)""",(event["parent_comm"],event["child_comm"],event["p_name"])
+    )
+
+    db.commit()
+
+    baseDeDonne.closeDB(db)
+
+def addSyscallBDD(event):
+    
+    baseDeDonne.initialisationDB("./data/database.db")
+    db = sqlite3.connect("./data/database.db")
+
+    cursor = db.cursor()
+    cursor.execute(""" 
+    INSERT OR IGNORE INTO syscall(evenement,NomProcessus,ret)
+    VALUES(?,?,?)""",(event["a_nomEvent"],event["p_name"],event["ret"])
     )
 
     db.commit()
@@ -129,7 +164,23 @@ def checkfilenameBDD(event):
 
     cursor = db.cursor()
 
-    cursor.execute("SELECT rowid FROM filename WHERE (evenement = ? AND filename = ? AND NomProcessus = ?)", (event["a_nomEvent"],event["filename"],event["p_name"]))
+    cursor.execute("SELECT rowid FROM filename WHERE (evenement = ? AND filename = ? AND NomProcessus = ? AND ret = ?)", (event["a_nomEvent"],event["filename"],event["p_name"],event["ret"]))
+    data=cursor.fetchall()
+    if len(data)==0:
+        # print("Ce nom de fichier n'a aps le droit d'êter appelé par cet évènement")
+        return 1
+    else:
+        # print("Cet évènement peut appeler ce fichier")
+        return 0
+
+def checkPathnameBDD(event):
+    """ Retourne 1 si une IP n'est pas présente dans la BDD """
+    # TODO erreur si la BDD n'existe pas
+    db = sqlite3.connect("./data/database.db")
+
+    cursor = db.cursor()
+
+    cursor.execute("SELECT rowid FROM pathname WHERE (evenement = ? AND pathname = ? AND NomProcessus = ? AND ret = ?)", (event["a_nomEvent"],event["pathname"],event["p_name"],event["ret"]))
     data=cursor.fetchall()
     if len(data)==0:
         # print("Ce nom de fichier n'a aps le droit d'êter appelé par cet évènement")
@@ -150,6 +201,22 @@ def checkParentChildBDD(event):
     data=cursor.fetchall()
     if len(data)==0:
         # print("Ce nom de fichier n'a pas le droit d'êter appelé par cet évènement")
+        return 1
+    else:
+        # print("Cet évènement peut appeler ce fichier")
+        return 0
+
+def checkSyscallBDD(event):
+    """ Retourne 1 si une IP n'est pas présente dans la BDD """
+    # TODO erreur si la BDD n'existe pas
+    db = sqlite3.connect("./data/database.db")
+
+    cursor = db.cursor()
+
+    cursor.execute("SELECT rowid FROM syscall WHERE (evenement = ? AND NomProcessus = ? AND ret = ?)", (event["a_nomEvent"],event["p_name"],event["ret"]))
+    data=cursor.fetchall()
+    if len(data)==0:
+        # print("Ce nom de fichier n'a aps le droit d'êter appelé par cet évènement")
         return 1
     else:
         # print("Cet évènement peut appeler ce fichier")
